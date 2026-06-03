@@ -1,72 +1,371 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simple Teleprompter</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Teleprompter Recorder</title>
+  <style>
+    /* ===== Styles (easy to extract to style.css later) ===== */
+    :root {
+      --bg: #0f172a;
+      --card: #111827;
+      --card-soft: #1f2937;
+      --text: #f9fafb;
+      --muted: #cbd5e1;
+      --accent: #2563eb;
+      --accent-danger: #dc2626;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .app {
+      display: grid;
+      gap: 1rem;
+      padding: 1rem;
+      min-height: 100vh;
+      grid-template-columns: 1fr;
+      grid-template-areas:
+        "media"
+        "controls"
+        "notes";
+    }
+
+    .media-panel,
+    .controls-panel,
+    .notes-panel {
+      background: var(--card);
+      border: 1px solid #334155;
+      border-radius: 0.75rem;
+      padding: 1rem;
+    }
+
+    .media-panel {
+      grid-area: media;
+    }
+
+    .controls-panel {
+      grid-area: controls;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .notes-panel {
+      grid-area: notes;
+      display: flex;
+      flex-direction: column;
+      min-height: 280px;
+    }
+
+    h1,
+    h2 {
+      margin: 0 0 0.75rem 0;
+      font-size: 1.1rem;
+    }
+
+    video {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      border-radius: 0.5rem;
+      background: #000;
+      border: 1px solid #475569;
+      object-fit: cover;
+    }
+
+    .status {
+      margin-top: 0.75rem;
+      min-height: 1.25rem;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .status.error {
+      color: #fca5a5;
+    }
+
+    .button-row {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.75rem;
+    }
+
+    button {
+      width: 100%;
+      min-height: 3rem;
+      font-size: 1rem;
+      font-weight: 700;
+      border: none;
+      border-radius: 0.6rem;
+      color: #fff;
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+
+    #startRecordingBtn {
+      background: var(--accent);
+    }
+
+    #stopRecordingBtn {
+      background: var(--accent-danger);
+    }
+
+    #downloadBtn {
+      background: #059669;
+    }
+
+    button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    label {
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin-bottom: 0.5rem;
+    }
+
+    textarea {
+      flex: 1;
+      width: 100%;
+      min-height: 220px;
+      max-height: 70vh;
+      resize: vertical;
+      overflow: auto;
+      border-radius: 0.5rem;
+      border: 1px solid #475569;
+      background: var(--card-soft);
+      color: var(--text);
+      padding: 0.9rem;
+      line-height: 1.6;
+      font-size: 1rem;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    @media (min-width: 900px) {
+      .app {
+        grid-template-columns: minmax(320px, 45%) 1fr;
+        grid-template-areas:
+          "media notes"
+          "controls notes";
+        align-content: start;
+      }
+
+      .button-row {
+        grid-template-columns: repeat(3, 1fr);
+      }
+
+      .notes-panel {
+        min-height: calc(100vh - 2rem);
+      }
+
+      textarea {
+        max-height: none;
+        height: 100%;
+      }
+    }
+  </style>
 </head>
 <body>
-    <div class="input-container">
-        <textarea id="scriptInput" placeholder="Enter your script here...">Welcome to the Teleprompter App!
+  <main class="app">
+    <section class="media-panel" aria-labelledby="mediaTitle">
+      <h1 id="mediaTitle">Video Preview</h1>
+      <video id="preview" autoplay muted playsinline></video>
+      <p id="statusMessage" class="status" role="status" aria-live="polite">Requesting camera and microphone access...</p>
+    </section>
 
-This is a simple teleprompter that allows you to:
-- Adjust text size
-- Control scroll speed
-- Mirror the text for professional teleprompter setups
-- Go fullscreen for a professional reading experience
+    <section class="controls-panel" aria-labelledby="controlsTitle">
+      <h2 id="controlsTitle">Recording Controls</h2>
+      <div class="button-row">
+        <button id="startRecordingBtn" type="button" disabled>Start Recording</button>
+        <button id="stopRecordingBtn" type="button" disabled>Stop Recording</button>
+        <button id="downloadBtn" type="button" disabled>Download</button>
+      </div>
+    </section>
 
-When mirrored, this text will appear reversed on screen but will read correctly when viewed in a mirror reflection.
+    <section class="notes-panel" aria-labelledby="notesTitle">
+      <h2 id="notesTitle">Teleprompter Notes</h2>
+      <label for="notesInput">Edit your notes/script while recording.</label>
+      <textarea id="notesInput" placeholder="Type or paste your script here..."></textarea>
+    </section>
+  </main>
 
-Click the "Fullscreen & Start" button to begin in fullscreen mode.
-Hover at the bottom of the screen to access controls while in fullscreen.</textarea>
-        <button id="updateBtn">Update Text</button>
-    </div>
-    
-    <div class="control-panel">
-        <div class="control-group">
-            <button id="startBtn">Start</button>
-            <button id="stopBtn" disabled>Stop</button>
-            <button id="fullscreenBtn">Fullscreen & Start</button>
-        </div>
-        
-        <div class="control-group">
-            <label for="fontSizeSlider">Font Size: <span id="fontSizeValue">40</span>px</label>
-            <input type="range" id="fontSizeSlider" min="20" max="100" value="40">
-        </div>
-        
-        <div class="control-group">
-            <label for="speedSlider">Speed: <span id="speedValue">2</span></label>
-            <input type="range" id="speedSlider" min="1" max="10" value="2">
-        </div>
-        
-        <div class="control-group">
-            <label for="mirrorToggle">Mirror Text:</label>
-            <input type="checkbox" id="mirrorToggle">
-        </div>
-    </div>
-    
-    <div id="teleprompterContainer" class="teleprompter-container">
-        <div id="teleprompterText" class="teleprompter-text"></div>
-        
-        <!-- Fullscreen controls overlay -->
-        <div class="fullscreen-controls">
-            <button id="fsStopBtn">Stop</button>
-            <button id="fsStartBtn">Start</button>
-            <button id="fsExitBtn">Exit Fullscreen</button>
-            
-            <div class="control-group">
-                <label for="fsSpeedSlider">Speed:</label>
-                <input type="range" id="fsSpeedSlider" min="1" max="10" value="2">
-            </div>
-            
-            <div class="control-group">
-                <label for="fsFontSizeSlider">Size:</label>
-                <input type="range" id="fsFontSizeSlider" min="20" max="100" value="40">
-            </div>
-        </div>
-    </div>
+  <script>
+    // ===== Script (easy to extract to script.js later) =====
+    // State
+    let mediaStream = null;
+    let mediaRecorder = null;
+    let recordedChunks = [];
+    let lastRecordingBlob = null;
+    let activeMimeType = "";
+    let activeExtension = "webm";
 
-    <script src="script.js"></script>
+    // Elements
+    const previewEl = document.getElementById("preview");
+    const statusMessageEl = document.getElementById("statusMessage");
+    const startBtn = document.getElementById("startRecordingBtn");
+    const stopBtn = document.getElementById("stopRecordingBtn");
+    const downloadBtn = document.getElementById("downloadBtn");
+
+    // Setup
+    init();
+
+    function init() {
+      bindEvents();
+      if (!supportsMediaRecorder()) {
+        showStatus("This browser does not support MediaRecorder. Please try a newer browser.", true);
+        return;
+      }
+      requestPermissionsAndPreview();
+    }
+
+    function bindEvents() {
+      startBtn.addEventListener("click", startRecording);
+      stopBtn.addEventListener("click", stopRecording);
+      downloadBtn.addEventListener("click", () => {
+        if (lastRecordingBlob) {
+          triggerDownload(lastRecordingBlob, activeExtension);
+        }
+      });
+    }
+
+    function supportsMediaRecorder() {
+      return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder);
+    }
+
+    async function requestPermissionsAndPreview() {
+      try {
+        mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        previewEl.srcObject = mediaStream;
+        showStatus("Ready to record.");
+        startBtn.disabled = false;
+      } catch (error) {
+        const denied = error && (error.name === "NotAllowedError" || error.name === "PermissionDeniedError");
+        showStatus(
+          denied
+            ? "Permission denied. Please allow camera and microphone access and reload."
+            : "Could not access camera/microphone. Check your device and browser settings.",
+          true
+        );
+      }
+    }
+
+    function getBestMimeType() {
+      const candidates = [
+        { type: "video/mp4;codecs=avc1.42E01E,mp4a.40.2", extension: "mp4" },
+        { type: "video/mp4", extension: "mp4" },
+        { type: "video/webm;codecs=vp9,opus", extension: "webm" },
+        { type: "video/webm;codecs=vp8,opus", extension: "webm" },
+        { type: "video/webm", extension: "webm" }
+      ];
+
+      for (const candidate of candidates) {
+        if (MediaRecorder.isTypeSupported(candidate.type)) {
+          return candidate;
+        }
+      }
+      return null;
+    }
+
+    function startRecording() {
+      if (!mediaStream) {
+        showStatus("Camera/microphone stream is not available.", true);
+        return;
+      }
+
+      const selected = getBestMimeType();
+      if (!selected) {
+        showStatus("No supported recording format found in this browser.", true);
+        return;
+      }
+
+      activeMimeType = selected.type;
+      activeExtension = selected.extension;
+      recordedChunks = [];
+      lastRecordingBlob = null;
+      downloadBtn.disabled = true;
+
+      try {
+        mediaRecorder = new MediaRecorder(mediaStream, { mimeType: activeMimeType });
+      } catch (error) {
+        showStatus("Unable to start recorder with the selected format.", true);
+        return;
+      }
+
+      mediaRecorder.ondataavailable = handleDataAvailable;
+      mediaRecorder.onstop = handleRecordingStop;
+      mediaRecorder.start();
+
+      startBtn.disabled = true;
+      stopBtn.disabled = false;
+      showStatus(`Recording started (${activeExtension.toUpperCase()}).`);
+    }
+
+    function stopRecording() {
+      if (!mediaRecorder || mediaRecorder.state !== "recording") {
+        return;
+      }
+      mediaRecorder.stop();
+      stopBtn.disabled = true;
+      showStatus("Stopping recording...");
+    }
+
+    function handleDataAvailable(event) {
+      if (event.data && event.data.size > 0) {
+        recordedChunks.push(event.data);
+      }
+    }
+
+    function handleRecordingStop() {
+      lastRecordingBlob = new Blob(recordedChunks, { type: activeMimeType });
+      startBtn.disabled = false;
+      stopBtn.disabled = true;
+      downloadBtn.disabled = !lastRecordingBlob || lastRecordingBlob.size === 0;
+
+      if (lastRecordingBlob && lastRecordingBlob.size > 0) {
+        triggerDownload(lastRecordingBlob, activeExtension);
+        showStatus(`Recording saved and downloaded (${activeExtension.toUpperCase()}).`);
+      } else {
+        showStatus("No recording data was captured.", true);
+      }
+    }
+
+    function triggerDownload(blob, extension) {
+      const fileName = `recording-${formatTimestamp(new Date())}.${extension}`;
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(objectUrl);
+    }
+
+    function formatTimestamp(date) {
+      const yyyy = date.getFullYear();
+      const mm = String(date.getMonth() + 1).padStart(2, "0");
+      const dd = String(date.getDate()).padStart(2, "0");
+      const hh = String(date.getHours()).padStart(2, "0");
+      const min = String(date.getMinutes()).padStart(2, "0");
+      const sec = String(date.getSeconds()).padStart(2, "0");
+      return `${yyyy}-${mm}-${dd}_${hh}-${min}-${sec}`;
+    }
+
+    function showStatus(message, isError = false) {
+      statusMessageEl.textContent = message;
+      statusMessageEl.classList.toggle("error", isError);
+    }
+  </script>
 </body>
 </html>
