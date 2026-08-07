@@ -7,3 +7,14 @@ services:
     expose:
       - "8080"
     restart: unless-stopped
+    networks:
+      - dokploy-network
+    deploy:
+      resources:
+        limits:
+          cpus: ${CPU_LIMIT:-0.50}
+          memory: ${MEMORY_LIMIT:-256M}
+
+networks:
+  dokploy-network:
+    external: true
