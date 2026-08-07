@@ -1,0 +1,50 @@
+# Version control and local agent state
+.git/
+.happy2/
+.atl/
+
+# Dependencies and build output are recreated in the build stage
+node_modules/
+dist/
+dist-ssr/
+.vite/
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+*.local
+
+# Development-only files
+old/
+coverage/
+.nyc_output/
+.cache/
+.turbo/
+.npm/
+.pnpm-store/
+.yarn/
+logs/
+*.log
+*.pid
+*.tsbuildinfo
+
+# Editor, OS, and documentation artifacts
+.DS_Store
+Thumbs.db
+Desktop.ini
+.vscode/
+.idea/
+*.sw?
+*~
+*.md
+*.tgz
+*.zip
+
+# Local AI-agent and design-tool state
+.happy*/
+.agents/
+.codex/
+.claude/
+.opencode/
+.impeccable/
